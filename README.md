@@ -50,7 +50,7 @@
 
 # ChatGPT Commit Message Hook
 ## What is it?
-This is a commit-msg hook for git that generates commit messages.
+This is a hook for git that generates commit messages.
 It uses [OpenAI's ChatGPT](https://openai.com/blog/chatgpt)
 to generate commit messages.
 
