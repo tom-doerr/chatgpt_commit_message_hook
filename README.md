@@ -63,7 +63,7 @@ For example:
 [openai]
 secret_key = MY_SECRET_KEY
 ```
-3. Install this hook:
+3. Install the hook:
 ```
 destination="/usr/share/git-core/templates/hooks/prepare-commit-msg"
 sudo wget https://raw.githubusercontent.com/tom-doerr/chatgpt_commit_message_hook/main/prepare-commit-msg -O $destination
