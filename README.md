@@ -1,4 +1,4 @@
-# chatgpt_commit_message_hook
+# ChatGPT Commit Message Hook
 ## What is it?
 This is a commit-msg hook for git that generates commit messages.
 It uses [OpenAI's ChatGPT](https://openai.com/blog/chatgpt)
