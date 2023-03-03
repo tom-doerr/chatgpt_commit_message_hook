@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+
+import os
+import sys
+import openai
+import configparser
+
+COMMIT_MSG_FILE = sys.argv[1]
+#COMMIT_SOURCE = sys.argv[2]
+#SHA1 = sys.argv[3]
+
+current_commit_file_content = open(COMMIT_MSG_FILE, 'r').read()
+# commit_message = 'test 1234'
+# with open(COMMIT_MSG_FILE, 'w') as f:
+    # f.write(f'{commit_message}: ')
+    # f.write(current_commit_file_content)
+
+
+
+
+
+CONFIG_DIR = os.getenv("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
+API_KEYS_LOCATION = os.path.join(CONFIG_DIR, "openaiapirc")
+
+
+def create_template_ini_file():
+    # """
+    # If the ini file does not exist create it and add the organization_id and
+    # secret_key
+    # """
+    """
+    If the ini file does not exist create it and add the secret_key
+    """
+    if not os.path.isfile(API_KEYS_LOCATION):
+        with open(API_KEYS_LOCATION, "w") as f:
+            f.write("[openai]\n")
+            # f.write("organization_id=\n")
+            f.write("secret_key=\n")
+
+        print("OpenAI API config file created at {}".format(API_KEYS_LOCATION))
+        print("Please edit it and add your organization ID and secret key")
+        print(
+            "If you do not yet have an organization ID and secret key, you\n"
+            "need to register for OpenAI Codex: \n"
+            "https://openai.com/blog/openai-codex/"
+        )
+        sys.exit(1)
+
+
+def initialize_openai_api():
+    """
+    Initialize the OpenAI API
+    """
+    # Check if file at API_KEYS_LOCATION exists
+    create_template_ini_file()
+    config = configparser.ConfigParser()
+    config.read(API_KEYS_LOCATION)
+
+    # openai.organization_id = config["openai"]["organization_id"].strip('"').strip("'")
+    openai.api_key = config["openai"]["secret_key"].strip('"').strip("'")
+
+
+initialize_openai_api()
+
+messages = [
+{'role': 'system', 'content': 'You are a helpful assistant writes git commit messages.'},
+{'role': 'user', 'content': f'{current_commit_file_content}\n\nWrite the commit message.'},
+]
+
+response = openai.ChatCompletion.create(
+    model="gpt-3.5-turbo",
+    # model="text-davinci-003",
+  messages=messages,
+)
+
+# print("response:", response, flush=True)
+
+response_text = response["choices"][0]["message"]['content']
+# print("response_text:", response_text)
+
+
+content_whole_file = response_text + current_commit_file_content
+
+with open(COMMIT_MSG_FILE, 'w') as f:
+    f.write(content_whole_file)
+
+
