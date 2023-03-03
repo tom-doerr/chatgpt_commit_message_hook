@@ -31,7 +31,7 @@
             alt="GitHub repository size"
     /></a>
 
-   <img src="https://badges.pufler.dev/visits/tom-doerr/chatgpt_commit_message_hook?style=for-the-badge&color=96CDFB&logoColor=white&labelColor=302D41"/>
+   <!--<img src="https://badges.pufler.dev/visits/tom-doerr/chatgpt_commit_message_hook?style=for-the-badge&color=96CDFB&logoColor=white&labelColor=302D41"/>-->
 
 
 </p>
@@ -56,8 +56,7 @@ to generate commit messages.
 
 ## How do I install it?
 ### Setup
-1. Install the [OpenAI API](https://github.com/openai/api-client-python)
-(`pip install openai`).
+1. Install the OpenAI API package (`pip install openai`).
 2. Create a file at `$XDG_CONFIG_HOME/openaiapirc` with your API keys.
 For example:
 ```
