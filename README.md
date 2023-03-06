@@ -56,7 +56,7 @@ to generate commit messages.
 
 ## How do I install it?
 ### Setup
-1. Install the OpenAI API package (`pip install openai`).
+1. Install packages (`pip install -r requirements.txt`).
 2. Create a file at `$XDG_CONFIG_HOME/openaiapirc` with your API keys.
 3. [optional] Add proxy server settings to the config file. Http proxy is supported only.
 4. [optional] The maximum number of changed lines in a commit. If the number of changed lines is greater than this value, the hook will send the result of git diff --cached --stat, otherwise it will send git diff --cached. The default value is 80.
@@ -71,6 +71,7 @@ max_changed_lines=80
 5. Install the hook:
 ```
 git clone https://github.com/jsfs2019/chatgpt_commit_message_hook
+cd chatgpt_commit_message_hook
 sudo make install
 ```
 
