@@ -5,6 +5,7 @@ import sys
 import configparser
 import requests
 import git
+import re
 
 
 COMMIT_MSG_FILE = sys.argv[1]
@@ -63,8 +64,10 @@ def get_staged_changes_summary(changes_dict, n):
 def get_full_diff(changes_dict):
     # Generate the full diff string
     full_diff = ""
-    for _, (_, _, diff_text) in changes_dict.items():
-        full_diff += diff_text
+    for diff_path, (_, _, diff_text) in changes_dict.items():
+        full_diff += f"diff --git a/{diff_path} b/{diff_path}:\n"
+        full_diff += '\n'.join(filter(lambda line: re.match(r'^[+\-]', line), diff_text.split('\n')))
+        full_diff += "\n"
 
     return full_diff
 def get_openai_chat_response(prompt, model, api_key, proxy_server=None):
@@ -135,14 +138,14 @@ def initialize_openai_api():
 
     # openai.organization_id = config["openai"]["organization_id"].strip('"').strip("'")
     # Read the API key from the configuration
-    api_key = config.get("openai", {}).get("secret_key", "").strip('"').strip("'")
+    api_key = config["openai"]["secret_key"].strip('"').strip("'")
     # Check if the API key is None
     if api_key is None:
         raise ValueError("OpenAI API key is not set in the configuration")
     # Read the proxy from the configuration
-    proxy = config.get("openai", {}).get("proxy", "").strip('"').strip("'")
+    proxy = config["openai"]["proxy"].strip('"').strip("'")
     # Read the maximum number of changed lines from the configuration
-    max_changed_lines = config.get("openai", {}).get("max_changed_lines", "")
+    max_changed_lines = config["openai"]["max_changed_lines"]
     if max_changed_lines:
         max_changed_lines = int(max_changed_lines)
 
@@ -155,9 +158,8 @@ def initialize_openai_api():
 api_key, proxy, max_changed_lines = initialize_openai_api()
 changes_dict = count_staged_changes()
 summary = get_staged_changes_summary(changes_dict, max_changed_lines)
-
 messages = [
-{'role': 'system', 'content': 'You are a helpful assistant writes short git commit messages.'},
+{'role': 'system', 'content': 'You are a helpful assistant writes short git commit messages based on the git diff.'},
 {'role': 'user', 'content': f'{summary}\n\nWrite the commit message.'},
 ]
 
