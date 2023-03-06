@@ -67,9 +67,7 @@ def get_full_diff(changes_dict):
         full_diff += diff_text
 
     return full_diff
-
 def get_openai_chat_response(prompt, model, api_key, proxy_server=None):
-    # print prompt
     # Set the URL of the OpenAI API endpoint
     url = "https://api.openai.com/v1/chat/completions"
 
@@ -79,7 +77,7 @@ def get_openai_chat_response(prompt, model, api_key, proxy_server=None):
         "Authorization": f"Bearer {api_key}"
     }
 
-    # Set the HTTP proxy for the requests library
+    # Set the HTTP proxy for the requests library, if provided
     proxies = {
         "http": proxy_server,
         "https": proxy_server
@@ -91,7 +89,7 @@ def get_openai_chat_response(prompt, model, api_key, proxy_server=None):
         "messages": prompt
     }
 
-    # Send the API request with the specified proxy server
+    # Send the API request with the specified proxy server, if provided
     response = requests.post(url, headers=headers, json=data, proxies=proxies)
 
     # Process the API response
