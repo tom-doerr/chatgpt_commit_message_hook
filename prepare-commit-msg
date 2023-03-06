@@ -112,8 +112,9 @@ def create_template_ini_file():
     if not os.path.isfile(API_KEYS_LOCATION):
         with open(API_KEYS_LOCATION, "w") as f:
             f.write("[openai]\n")
-            # f.write("organization_id=\n")
             f.write("secret_key=\n")
+            f.write("proxy=\n")
+            f.write("max_changed_lines=\n")
 
         print("OpenAI API config file created at {}".format(API_KEYS_LOCATION))
         print("Please edit it and add your organization ID and secret key")
@@ -135,14 +136,27 @@ def initialize_openai_api():
     config.read(API_KEYS_LOCATION)
 
     # openai.organization_id = config["openai"]["organization_id"].strip('"').strip("'")
-    api_key = config["openai"]["secret_key"].strip('"').strip("'")
-    proxy = config["openai"]["proxy"].strip('"').strip("'")
-    return api_key, proxy
+    # Read the API key from the configuration
+    api_key = config.get("openai", {}).get("secret_key", "").strip('"').strip("'")
+    # Check if the API key is None
+    if api_key is None:
+        raise ValueError("OpenAI API key is not set in the configuration")
+    # Read the proxy from the configuration
+    proxy = config.get("openai", {}).get("proxy", "").strip('"').strip("'")
+    # Read the maximum number of changed lines from the configuration
+    max_changed_lines = config.get("openai", {}).get("max_changed_lines", "")
+    if max_changed_lines:
+        max_changed_lines = int(max_changed_lines)
+
+    # Check if the maximum number of changed lines is valid
+    if max_changed_lines is None or max_changed_lines <= 0:
+        max_changed_lines = 80
+    return api_key, proxy, max_changed_lines
 
 
-api_key, proxy = initialize_openai_api()
+api_key, proxy, max_changed_lines = initialize_openai_api()
 changes_dict = count_staged_changes()
-summary = get_staged_changes_summary(changes_dict, 80)
+summary = get_staged_changes_summary(changes_dict, max_changed_lines)
 
 messages = [
 {'role': 'system', 'content': 'You are a helpful assistant writes short git commit messages.'},
