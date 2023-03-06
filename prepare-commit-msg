@@ -2,8 +2,8 @@
 
 import os
 import sys
-import openai
 import configparser
+import requests
 
 COMMIT_MSG_FILE = sys.argv[1]
 #COMMIT_SOURCE = sys.argv[2]
@@ -15,13 +15,43 @@ current_commit_file_content = open(COMMIT_MSG_FILE, 'r').read()
     # f.write(f'{commit_message}: ')
     # f.write(current_commit_file_content)
 
-
-
-
-
 CONFIG_DIR = os.getenv("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
 API_KEYS_LOCATION = os.path.join(CONFIG_DIR, "openaiapirc")
 
+
+
+def get_openai_chat_response(prompt, model, api_key, proxy_server=None):
+    # print prompt
+    # Set the URL of the OpenAI API endpoint
+    url = "https://api.openai.com/v1/chat/completions"
+
+    # Set the HTTP headers for the API request
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    }
+
+    # Set the HTTP proxy for the requests library
+    proxies = {
+        "http": proxy_server,
+        "https": proxy_server
+    } if proxy_server else None
+
+    # Set the data for the API request
+    data = {
+        "model": model,
+        "messages": prompt
+    }
+
+    # Send the API request with the specified proxy server
+    response = requests.post(url, headers=headers, json=data, proxies=proxies)
+
+    # Process the API response
+    if response.status_code == 200:
+        messages = response.json()["choices"][0]["message"]["content"]
+        return messages
+    else:
+        print("Error:", response.text)
 
 def create_template_ini_file():
     # """
@@ -57,26 +87,30 @@ def initialize_openai_api():
     config.read(API_KEYS_LOCATION)
 
     # openai.organization_id = config["openai"]["organization_id"].strip('"').strip("'")
-    openai.api_key = config["openai"]["secret_key"].strip('"').strip("'")
+    api_key = config["openai"]["secret_key"].strip('"').strip("'")
+    proxy = config["openai"]["proxy"].strip('"').strip("'")
+    return api_key, proxy
 
 
-initialize_openai_api()
+api_key, proxy = initialize_openai_api()
 
 messages = [
 {'role': 'system', 'content': 'You are a helpful assistant writes short git commit messages.'},
 {'role': 'user', 'content': f'{current_commit_file_content}\n\nWrite the commit message.'},
 ]
 
-response = openai.ChatCompletion.create(
+# response = openai.ChatCompletion.create(
+#     model="gpt-3.5-turbo",
+#     # model="text-davinci-003",
+#   messages=messages,
+# )
+# replace it with get_openai_chat_response
+response_text = get_openai_chat_response(
+    prompt=messages,
     model="gpt-3.5-turbo",
-    # model="text-davinci-003",
-  messages=messages,
+    api_key=api_key,
+    proxy_server=proxy,
 )
-
-# print("response:", response, flush=True)
-
-response_text = response["choices"][0]["message"]['content']
-# print("response_text:", response_text)
 
 
 content_whole_file = response_text + current_commit_file_content
