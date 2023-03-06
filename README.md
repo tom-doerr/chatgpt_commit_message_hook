@@ -68,7 +68,7 @@ secret_key = MY_SECRET_KEY
 proxy= HTTP_PROXY
 max_changed_lines=80
 ```
-1. Install the hook:
+5. Install the hook:
 ```
 git clone https://github.com/jsfs2019/chatgpt_commit_message_hook
 sudo make install
