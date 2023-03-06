@@ -68,11 +68,10 @@ secret_key = MY_SECRET_KEY
 proxy= HTTP_PROXY
 max_changed_lines=80
 ```
-3. Install the hook:
+1. Install the hook:
 ```
-destination="/usr/share/git-core/templates/hooks/prepare-commit-msg"
-sudo wget https://raw.githubusercontent.com/tom-doerr/chatgpt_commit_message_hook/main/prepare-commit-msg -O $destination
-sudo chmod +x $destination
+git clone https://github.com/jsfs2019/chatgpt_commit_message_hook
+sudo make install
 ```
 
 This will set up the hook for all new repositories. 
