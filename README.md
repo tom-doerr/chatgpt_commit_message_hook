@@ -58,10 +58,15 @@ to generate commit messages.
 ### Setup
 1. Install the OpenAI API package (`pip install openai`).
 2. Create a file at `$XDG_CONFIG_HOME/openaiapirc` with your API keys.
+3. [optional] Add proxy server settings to the config file. Http proxy is supported only.
+4. [optional] The maximum number of changed lines in a commit. If the number of changed lines is greater than this value, the hook will send the result of git diff --cached --stat, otherwise it will send git diff --cached. The default value is 80.
+
 For example:
 ```
 [openai]
 secret_key = MY_SECRET_KEY
+proxy= HTTP_PROXY
+max_changed_lines=80
 ```
 3. Install the hook:
 ```
