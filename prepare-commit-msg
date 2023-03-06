@@ -2,8 +2,11 @@
 
 import os
 import sys
-import openai
 import configparser
+import requests
+import git
+import re
+
 
 COMMIT_MSG_FILE = sys.argv[1]
 #COMMIT_SOURCE = sys.argv[2]
@@ -15,13 +18,89 @@ current_commit_file_content = open(COMMIT_MSG_FILE, 'r').read()
     # f.write(f'{commit_message}: ')
     # f.write(current_commit_file_content)
 
-
-
-
-
 CONFIG_DIR = os.getenv("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
 API_KEYS_LOCATION = os.path.join(CONFIG_DIR, "openaiapirc")
 
+def count_staged_changes(repo_path="."):
+    # Open the repository
+    repo = git.Repo(repo_path)
+
+    # Get the Git index
+    index = repo.index
+
+    # Get the staged changes as a text diff
+    # staged_diff = repo.diff("HEAD", "index", create_patch=True)
+    staged_diff = index.diff("HEAD", create_patch=True, R=True)
+
+    changes_dict = {}
+    for diff in staged_diff:
+        diff_text = diff.diff.decode("utf-8")
+        added_lines = sum(1 for line in diff_text.splitlines() if line.startswith("+"))
+        deleted_lines = sum(1 for line in diff_text.splitlines() if line.startswith("-"))
+
+        # Save the change to the dictionary
+        changes_dict[diff.b_path] = (added_lines, deleted_lines, diff_text)
+    return changes_dict
+
+def get_staged_changes_summary(changes_dict, n):
+    # Check if the total number of changed lines is less than n
+    total_changed_lines = sum(added_lines + deleted_lines for _, (added_lines, deleted_lines, _) in changes_dict.items())
+    if total_changed_lines < n:
+        return get_full_diff(changes_dict)
+
+    # Generate the summary string
+    summary = ""
+    for file_path, (added_lines, deleted_lines, _) in changes_dict.items():
+        summary += f"{file_path} | {added_lines + deleted_lines} "
+        if added_lines > 0:
+            summary += "+" * added_lines
+        if deleted_lines > 0:
+            summary += "-" * deleted_lines
+        summary += "\n"
+
+    return summary
+
+
+def get_full_diff(changes_dict):
+    # Generate the full diff string
+    full_diff = ""
+    for diff_path, (_, _, diff_text) in changes_dict.items():
+        full_diff += f"diff --git a/{diff_path} b/{diff_path}:\n"
+        full_diff += '\n'.join(filter(lambda line: re.match(r'^[+\-]', line), diff_text.split('\n')))
+        full_diff += "\n"
+
+    return full_diff
+def get_openai_chat_response(prompt, model, api_key, proxy_server=None):
+    # Set the URL of the OpenAI API endpoint
+    url = "https://api.openai.com/v1/chat/completions"
+
+    # Set the HTTP headers for the API request
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    }
+
+    # Set the HTTP proxy for the requests library, if provided
+    proxies = {
+        "http": proxy_server,
+        "https": proxy_server
+    } if proxy_server else None
+
+    # Set the data for the API request
+    data = {
+        "model": model,
+        "messages": prompt
+    }
+
+    # Send the API request with the specified proxy server, if provided
+    response = requests.post(url, headers=headers, json=data, proxies=proxies)
+
+    # Process the API response
+    if response.status_code == 200:
+        messages = response.json()["choices"][0]["message"]["content"]
+        return messages
+    else:
+        print("Error:", response.text)
 
 def create_template_ini_file():
     # """
@@ -34,8 +113,9 @@ def create_template_ini_file():
     if not os.path.isfile(API_KEYS_LOCATION):
         with open(API_KEYS_LOCATION, "w") as f:
             f.write("[openai]\n")
-            # f.write("organization_id=\n")
             f.write("secret_key=\n")
+            f.write("proxy=\n")
+            f.write("max_changed_lines=\n")
 
         print("OpenAI API config file created at {}".format(API_KEYS_LOCATION))
         print("Please edit it and add your organization ID and secret key")
@@ -57,26 +137,44 @@ def initialize_openai_api():
     config.read(API_KEYS_LOCATION)
 
     # openai.organization_id = config["openai"]["organization_id"].strip('"').strip("'")
-    openai.api_key = config["openai"]["secret_key"].strip('"').strip("'")
+    # Read the API key from the configuration
+    api_key = config["openai"]["secret_key"].strip('"').strip("'")
+    # Check if the API key is None
+    if api_key is None:
+        raise ValueError("OpenAI API key is not set in the configuration")
+    # Read the proxy from the configuration
+    proxy = config["openai"]["proxy"].strip('"').strip("'")
+    # Read the maximum number of changed lines from the configuration
+    max_changed_lines = config["openai"]["max_changed_lines"]
+    if max_changed_lines:
+        max_changed_lines = int(max_changed_lines)
+
+    # Check if the maximum number of changed lines is valid
+    if max_changed_lines is None or max_changed_lines <= 0:
+        max_changed_lines = 80
+    return api_key, proxy, max_changed_lines
 
 
-initialize_openai_api()
-
+api_key, proxy, max_changed_lines = initialize_openai_api()
+changes_dict = count_staged_changes()
+summary = get_staged_changes_summary(changes_dict, max_changed_lines)
 messages = [
-{'role': 'system', 'content': 'You are a helpful assistant writes short git commit messages.'},
-{'role': 'user', 'content': f'{current_commit_file_content}\n\nWrite the commit message.'},
+{'role': 'system', 'content': 'You are a helpful assistant writes short git commit messages based on the git diff.'},
+{'role': 'user', 'content': f'{summary}\n\nWrite the commit message.'},
 ]
 
-response = openai.ChatCompletion.create(
+# response = openai.ChatCompletion.create(
+#     model="gpt-3.5-turbo",
+#     # model="text-davinci-003",
+#   messages=messages,
+# )
+# replace it with get_openai_chat_response
+response_text = get_openai_chat_response(
+    prompt=messages,
     model="gpt-3.5-turbo",
-    # model="text-davinci-003",
-  messages=messages,
+    api_key=api_key,
+    proxy_server=proxy,
 )
-
-# print("response:", response, flush=True)
-
-response_text = response["choices"][0]["message"]['content']
-# print("response_text:", response_text)
 
 
 content_whole_file = response_text + current_commit_file_content
