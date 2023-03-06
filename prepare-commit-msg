@@ -4,6 +4,8 @@ import os
 import sys
 import configparser
 import requests
+import git
+
 
 COMMIT_MSG_FILE = sys.argv[1]
 #COMMIT_SOURCE = sys.argv[2]
@@ -18,7 +20,53 @@ current_commit_file_content = open(COMMIT_MSG_FILE, 'r').read()
 CONFIG_DIR = os.getenv("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
 API_KEYS_LOCATION = os.path.join(CONFIG_DIR, "openaiapirc")
 
+def count_staged_changes(repo_path="."):
+    # Open the repository
+    repo = git.Repo(repo_path)
 
+    # Get the Git index
+    index = repo.index
+
+    # Get the staged changes as a text diff
+    # staged_diff = repo.diff("HEAD", "index", create_patch=True)
+    staged_diff = index.diff("HEAD", create_patch=True, R=True)
+
+    changes_dict = {}
+    for diff in staged_diff:
+        diff_text = diff.diff.decode("utf-8")
+        added_lines = sum(1 for line in diff_text.splitlines() if line.startswith("+"))
+        deleted_lines = sum(1 for line in diff_text.splitlines() if line.startswith("-"))
+
+        # Save the change to the dictionary
+        changes_dict[diff.b_path] = (added_lines, deleted_lines, diff_text)
+    return changes_dict
+
+def get_staged_changes_summary(changes_dict, n):
+    # Check if the total number of changed lines is less than n
+    total_changed_lines = sum(added_lines + deleted_lines for _, (added_lines, deleted_lines, _) in changes_dict.items())
+    if total_changed_lines < n:
+        return get_full_diff(changes_dict)
+
+    # Generate the summary string
+    summary = ""
+    for file_path, (added_lines, deleted_lines, _) in changes_dict.items():
+        summary += f"{file_path} | {added_lines + deleted_lines} "
+        if added_lines > 0:
+            summary += "+" * added_lines
+        if deleted_lines > 0:
+            summary += "-" * deleted_lines
+        summary += "\n"
+
+    return summary
+
+
+def get_full_diff(changes_dict):
+    # Generate the full diff string
+    full_diff = ""
+    for _, (_, _, diff_text) in changes_dict.items():
+        full_diff += diff_text
+
+    return full_diff
 
 def get_openai_chat_response(prompt, model, api_key, proxy_server=None):
     # print prompt
@@ -93,10 +141,12 @@ def initialize_openai_api():
 
 
 api_key, proxy = initialize_openai_api()
+changes_dict = count_staged_changes()
+summary = get_staged_changes_summary(changes_dict, 80)
 
 messages = [
 {'role': 'system', 'content': 'You are a helpful assistant writes short git commit messages.'},
-{'role': 'user', 'content': f'{current_commit_file_content}\n\nWrite the commit message.'},
+{'role': 'user', 'content': f'{summary}\n\nWrite the commit message.'},
 ]
 
 # response = openai.ChatCompletion.create(
