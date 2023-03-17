@@ -7,8 +7,9 @@ import requests
 import git
 import re
 
-if os.path.exists(".git/rebase-merge") or os.path.exists(".git/rebase-apply"):
+if os.path.exists(".git/rebase-merge") or os.path.exists(".git/rebase-apply") or os.path.exists(".git/MERGE_HEAD"):
     sys.exit(0)
+
 
 COMMIT_MSG_FILE = sys.argv[1]
 #COMMIT_SOURCE = sys.argv[2]
