@@ -1,0 +1,4 @@
+[openai]
+secret_key = MY_SECRET_KEY
+proxy= HTTP_PROXY
+max_changed_lines=80
