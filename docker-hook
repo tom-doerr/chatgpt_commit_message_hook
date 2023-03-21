@@ -1,0 +1,2 @@
+#!/bin/sh
+docker run --volume "`pwd`":/root/data chatgpt_commit_message_hook prepare-commit-msg "$*"
