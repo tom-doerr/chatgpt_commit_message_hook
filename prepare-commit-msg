@@ -63,8 +63,8 @@ def initialize_openai_api():
 initialize_openai_api()
 
 messages = [
-{'role': 'system', 'content': 'You are a helpful assistant writes short git commit messages.'},
-{'role': 'user', 'content': f'{current_commit_file_content}\n\nWrite the commit message.'},
+{'role': 'system', 'content': 'You are a helpful assistant writes short titles for git commit messages.'},
+{'role': 'user', 'content': f'{current_commit_file_content}\n\nWrite the commit message title (fewer than 50 characters).'},
 ]
 
 response = openai.ChatCompletion.create(
