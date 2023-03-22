@@ -151,7 +151,11 @@ def initialize_openai_api():
     except KeyError:
         proxy = None
     # Read the maximum number of changed lines from the configuration
-    max_changed_lines = config["openai"]["max_changed_lines"]
+    try:
+        max_changed_lines = config["openai"]["max_changed_lines"]
+    except KeyError:
+        max_changed_lines = None
+
     if max_changed_lines:
         max_changed_lines = int(max_changed_lines)
 
