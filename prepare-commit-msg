@@ -7,7 +7,20 @@ import requests
 import git
 import re
 
-if os.path.exists(".git/rebase-merge") or os.path.exists(".git/rebase-apply") or os.path.exists(".git/MERGE_HEAD"):
+# check this repo is a submodule
+dir = ".git"
+if os.path.isfile(".git"):
+    with open(".git", "r") as f:
+        git_dir = f.read().split(" ")[1].strip()
+        dir = git_dir
+
+
+if (
+    os.path.exists(dir + "/rebase-merge")
+    or os.path.exists(dir + "/rebase-apply")
+    or os.path.exists(dir + "/MERGE_HEAD")
+    or os.path.exists(dir + "/CHERRY_PICK_HEAD")
+):
     sys.exit(0)
 
 
