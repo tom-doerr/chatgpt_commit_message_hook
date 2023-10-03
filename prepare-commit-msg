@@ -6,6 +6,7 @@ import configparser
 import requests
 import git
 import re
+import time
 
 if os.path.exists(".git/rebase-merge") or os.path.exists(".git/rebase-apply") or os.path.exists(".git/MERGE_HEAD"):
     sys.exit(0)
@@ -186,8 +187,11 @@ response_text = get_openai_chat_response(
     proxy_server=proxy,
 )
 
-
-content_whole_file = response_text + current_commit_file_content
+if response_text:
+    content_whole_file = response_text + current_commit_file_content
+    time.sleep(1)
+else:
+    content_whole_file = current_commit_file_content
 
 with open(COMMIT_MSG_FILE, 'w') as f:
     f.write(content_whole_file)
